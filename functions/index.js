@@ -1,9 +1,13 @@
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-admin.initializeApp();
 
-// Send notification on claim
-exports.sendClaimNotification = functions.firestore
+
+import { firestore } from "firebase-functions";
+
+import pkg from 'firebase-admin';
+const { initializeApp, messaging } = pkg;
+
+initializeApp();
+
+export const sendClaimNotification = firestore
   .document("donations/{donationId}")
   .onUpdate((change, context) => {
     const donation = change.after.data();
@@ -17,7 +21,7 @@ exports.sendClaimNotification = functions.firestore
         topic: recipientId, // You can send the message to the recipient's topic
       };
       
-      return admin.messaging().send(message);
+      return messaging().send(message);
     }
     return null;
   });
