@@ -1,19 +1,23 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+admin.initializeApp();
 
-const {onRequest} = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
-
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
-
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+// Send notification on claim
+exports.sendClaimNotification = functions.firestore
+  .document("donations/{donationId}")
+  .onUpdate((change, context) => {
+    const donation = change.after.data();
+    if (donation.status === "claimed") {
+      const recipientId = context.params.donationId;
+      const message = {
+        notification: {
+          title: "Food Claimed!",
+          body: `Your food donation has been claimed by a recipient.`,
+        },
+        topic: recipientId, // You can send the message to the recipient's topic
+      };
+      
+      return admin.messaging().send(message);
+    }
+    return null;
+  });
