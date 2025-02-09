@@ -83,7 +83,7 @@ export default function Home() {
     <div>
       {!user ? (
         <div>
-          <h2>Sign In / Sign Up</h2>
+          <h2>Log In / Sign Up</h2>
           <input type="email" ref={emailRef} placeholder="Email" />
           <input type="password" ref={passwordRef} placeholder="Password" />
           <button onClick={() => handleAuth(true)}>Sign Up</button>
