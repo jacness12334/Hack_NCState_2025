@@ -1,12 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyBsEWedNKdtlsbEKR42hafFLzK_asO5g9E",
+  
   authDomain: "hunger-helpers-d203e.firebaseapp.com",
   databaseURL: "https://hunger-helpers-d203e-default-rtdb.firebaseio.com",
   projectId: "hunger-helpers-d203e",
@@ -18,5 +18,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-export const firestore = getFirestore(app);
+const auth = getAuth(app);
+const firestore = getFirestore(app);
+
+export {auth, firestore};
