@@ -2,32 +2,19 @@
 // The Cloud Functions for Firebase SDK to create Cloud Functions and triggers.
 const {logger} = require("firebase-functions");
 const {onRequest} = require("firebase-functions/v2/https");
-const {onDocumentCreated} = require("firebase-functions/v2/firestore");
+const {onDocumentUpdated} = require("firebase-functions/v2/firestore");
 
 // The Firebase Admin SDK to access Firestore.
 const {initializeApp} = require("firebase-admin/app");
-const {getFirestore} = require("firebase-admin/firestore");
+const {getFirestore, QuerySnapshot} = require("firebase-admin/firestore");
 
 initializeApp();
 
-// Take the text parameter passed to this HTTP endpoint and insert it into
-// Firestore under the path /messages/:documentId/original
-exports.addmessage = onRequest(async (req, res) => {
-  // Grab the text parameter.
-  const original = req.query.text;
-  // Push the new message into Firestore using the Firebase Admin SDK.
-  const writeResult = await getFirestore()
-      .collection("messages")
-      .add({original: original});
-  // Send back a message that we've successfully written the message
-  res.json({result: `Message with ID: ${writeResult.id} added.`});
-});
-
 exports.addfood = onRequest(async (req, res) => {
-  const lat = req.query.latitude;
-  const long = req.query.longitude;
+  const lat = Number(req.query.latitude);
+  const long =Number( req.query.longitude);
   const name = req.query.name;
-  const count = req.query.count;
+  const count = Number(req.query.count);
   
   const writeResult = await getFirestore()
       .collection("available")
@@ -36,21 +23,67 @@ exports.addfood = onRequest(async (req, res) => {
   res.json({result: `Food added. ID: ${writeResult.id}`});
 });
 
-// Listens for new messages added to /messages/:documentId/original
-// and saves an uppercased version of the message
-// to /messages/:documentId/uppercase
-exports.makeuppercase = onDocumentCreated("/messages/{documentId}", (event) => {
-  // Grab the current value of what was written to Firestore.
-  const original = event.data.data().original;
+exports.viewfood = onRequest(async (req, res)=>{
+  const collection = await getFirestore()
+      .collection("available");
 
-  // Access the parameter `{documentId}` with `event.params`
-  logger.log("Uppercasing", event.params.documentId, original);
+  var result = new Array();
 
-  const uppercase = original.toUpperCase();
+  collection.get().then(querySnapshot => {
+    querySnapshot.forEach((doc) => {
+      result.push({"data": doc.data(), "id": doc.id});
+      console.log(doc.data());
+    });
 
-  // You must return a Promise when performing
-  // asynchronous tasks inside a function
-  // such as writing to Firestore.
-  // Setting an 'uppercase' field in Firestore document returns a Promise.
-  return event.data.ref.set({uppercase}, {merge: true});
+
+    res.json({response: result});
+  }).catch((error) => {
+    console.log("Error getting documents: ", error);
+  });
+
+});
+
+exports.requestfood = onRequest(async (req, res) => {
+  const doc = await getFirestore()
+      .collection("available")
+      .doc(req.query.id);
+    
+    const fulldoc = await doc.get().catch((error) => {
+      console.log("Error getting document:", error);
+    });
+    
+    
+    const data = fulldoc.data();
+    if (fulldoc.exists) {
+
+      if(data.count < req.query.count){
+        res.json(`Not enough ${req.query.name}`);
+      }
+
+      doc.set({
+        count: data.count - req.query.count
+      }, {merge: true})
+
+      
+
+      res.json(`Taken ${req.query.count} from ${req.query.name}(${req.query.id}). ${data.count - req.query.count} left.`)
+    } else {
+      res.json(`No such document!`);
+    }
+});
+
+exports.removeEmpty = onDocumentUpdated("/available/{documentId}", event => {
+    const snapshot = event.data.after;
+    const snapdata = snapshot.data();
+
+    console.log(snapdata);
+    console.log(snapdata.count);
+
+    if(snapdata.count === 0){
+      snapshot.ref.delete().then(() => {
+        console.log("Document successfully deleted!");
+    }).catch((error) => {
+        console.error("Error removing document: ", error);
+    });
+    }
 });
