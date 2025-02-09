@@ -23,6 +23,19 @@ exports.addmessage = onRequest(async (req, res) => {
   res.json({result: `Message with ID: ${writeResult.id} added.`});
 });
 
+exports.addfood = onRequest(async (req, res) => {
+  const lat = req.query.latitude;
+  const long = req.query.longitude;
+  const name = req.query.name;
+  const count = req.query.count;
+  
+  const writeResult = await getFirestore()
+      .collection("available")
+      .add({lat: lat, long: long, name: name, count: count});
+
+  res.json({result: `Food added. ID: ${writeResult.id}`});
+});
+
 // Listens for new messages added to /messages/:documentId/original
 // and saves an uppercased version of the message
 // to /messages/:documentId/uppercase
