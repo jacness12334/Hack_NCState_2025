@@ -68,3 +68,6 @@ node_modules/
 # dataconnect generated files
 .dataconnect
 functions/firebase.js
+
+# like this
+hungerhelpersecret/firebase.js
