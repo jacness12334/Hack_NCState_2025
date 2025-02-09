@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { auth, firestore } from "../firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { addDoc, collection, getDocs } from "firebase/firestore";
+import { addDoc, collection, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -11,8 +11,10 @@ export default function Home() {
   const foodNameRef = useRef();
   const quantityRef = useRef();
   const expiryRef = useRef();
+  const orderQuantityRef = useRef(); // Input for ordering food
   const [availableFood, setAvailableFood] = useState([]);
 
+  // Handle authentication
   const handleAuth = async (isSignUp) => {
     const email = emailRef.current.value;
     const password = passwordRef.current.value;
@@ -28,25 +30,53 @@ export default function Home() {
     }
   };
 
+  // Add new food item
   const handleAddFood = async () => {
     if (!foodNameRef.current.value || !quantityRef.current.value || !expiryRef.current.value) return;
 
     try {
       await addDoc(collection(firestore, "available"), {
         foodName: foodNameRef.current.value,
-        quantity: quantityRef.current.value,
+        quantity: parseInt(quantityRef.current.value, 10),
         expiry: expiryRef.current.value,
       });
 
       alert("Food added successfully!");
+      fetchAvailableFood(); // Refresh list after adding food
     } catch (error) {
       console.error("Error adding food:", error);
     }
   };
 
+  // Fetch available food
   const fetchAvailableFood = async () => {
     const querySnapshot = await getDocs(collection(firestore, "available"));
     setAvailableFood(querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+  };
+
+  // Order food (reduce quantity & remove if zero)
+  const handleOrderFood = async (foodId, currentQuantity) => {
+    const orderQuantity = parseInt(orderQuantityRef.current.value, 10);
+    if (isNaN(orderQuantity) || orderQuantity <= 0 || orderQuantity > currentQuantity) {
+      alert("Invalid order quantity!");
+      return;
+    }
+
+    try {
+      const foodRef = doc(firestore, "available", foodId);
+      const newQuantity = currentQuantity - orderQuantity;
+
+      if (newQuantity > 0) {
+        await updateDoc(foodRef, { quantity: newQuantity });
+      } else {
+        await deleteDoc(foodRef);
+      }
+
+      alert("Order placed successfully!");
+      fetchAvailableFood(); // Refresh list
+    } catch (error) {
+      console.error("Error ordering food:", error);
+    }
   };
 
   return (
@@ -83,6 +113,8 @@ export default function Home() {
                 {availableFood.map((food) => (
                   <li key={food.id}>
                     {food.foodName} - {food.quantity} available (Exp: {food.expiry})
+                    <input type="number" ref={orderQuantityRef} placeholder="Order Quantity" />
+                    <button onClick={() => handleOrderFood(food.id, food.quantity)}>Order</button>
                   </li>
                 ))}
               </ul>
